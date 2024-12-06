@@ -57,7 +57,6 @@ typedef struct{
     char hash[16];
 }hash;
 
-void register_initialization();
 uint64_t md5(password *array_password, unsigned int num_password, hash *array_hash);
 uint64_t md5_vettoriale(password *array_password, unsigned int num_password, hash *array_hash);
 #endif
