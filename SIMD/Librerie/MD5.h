@@ -36,15 +36,15 @@ static const uint32_t s[] = {
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
 };
 
+static const uint8_t g[] = {
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 
+    6, 11, 0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 5, 
+    8, 11, 14, 1, 4, 7, 10, 13, 0, 3, 6, 9, 12, 15, 2, 0, 
+    7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9 
+};
+
 // Operazione di LEFTROTATE -> si shifta x di c posizioni verso sinistra e si esegue OR bit a bit con x shiftato di 32-c posizioni verso destra
 #define LEFTROTATE(x, c) (((x) << (c)) | ((x) >> (32 - (c))))
-
-//Registri per computazione vettoriale da inizializzare con register_initialization()
-__m128i K_register[64];
-__m128i a0_init;
-__m128i b0_init;
-__m128i c0_init;
-__m128i d0_init;
 
 //Struct per modellare attributi singola password contenute nella wordlist
 typedef struct{
