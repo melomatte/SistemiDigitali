@@ -3,13 +3,11 @@
 
 #define N 100
 
-void print_hash(hash *array_hash, unsigned int num_password) {
-    for(int i = 0; i < num_password; i++){
-        for (int j = 0; j < 16; j++) {
-            printf("%02x", (unsigned char) array_hash[i].hash[j]);  // Stampa ogni byte in formato esadecimale
-        }
-        printf("\n");
+void print_hash(char *hash) {
+    for (uint8_t i = 0; i < 16; i++) {
+        printf("%02x", (unsigned char) hash[i]);  // Stampa ogni byte in formato esadecimale
     }
+    printf("\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -23,7 +21,7 @@ int main(int argc, char *argv[]) {
     result_wordlist wordlist = read_wordlist(argv[1]);
 
     if(wordlist.error_code == -1){
-        perror("ERRORE-La wordlist non esiste o non è un file .txt\n");
+        perror("ERRORE-La __m128i*) &array_hash[k].hashwordlist non esiste o non è un file .txt\n");
         perror("Usage: [wordlist] [hash MD5]\n");
     }else if(wordlist.error_code == -2){
         perror("ERRORE-La wordlist contiene delle password con una lunghezza maggiore di 56 caratteri\n");
@@ -32,13 +30,13 @@ int main(int argc, char *argv[]) {
         hash *array_hash = (hash *) _mm_malloc (wordlist.num_password*sizeof(hash), 16);// 16 byte (128 bit) aligned
         if (!array_hash) perror("ERRORE: Allocazione fallita per array_hash");
 
-        register_initialization();
-        printf("\n\nVERSIONE VETTORIALE\n");
+        printf("\nVERSIONE VETTORIALE\n");
         uint64_t clock_vettoriale = 0;
         for(int i = 0; i < N; i++){
             clock_vettoriale += md5_vettoriale(wordlist.array_password, wordlist.num_password, array_hash);
         }
         printf("Elapsed clock medio %lu\n", clock_vettoriale/N);
+        //print_hash(array_hash[0].hash);
 
         printf("VERSIONE SCALARE\n");
         uint64_t clock_scalare = 0;
@@ -46,20 +44,16 @@ int main(int argc, char *argv[]) {
             clock_scalare += md5(wordlist.array_password, wordlist.num_password, array_hash);
         }
         printf("Elapsed clock medio %lu\n", clock_scalare/N);
+        //print_hash(array_hash[0].hash);
 
         double speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale/N);
         printf("Lo speedup ottenuto e' pari a (versione ottimizzata): %.4f\n", speedup);
-
-        if (wordlist.array_password) {
-            _mm_free(array_hash);            
-           array_hash = NULL;
-        }
+        
+        //Deallocazione hash
+        _mm_free(array_hash);
     }
 
-    if (wordlist.array_password) {
-        _mm_free(wordlist.array_password);
-        wordlist.array_password = NULL;
-    }
+    free(wordlist.array_password);
 
     return 0;
 }
