@@ -38,7 +38,15 @@ int main(int argc, char *argv[]) {
         printf("Elapsed clock medio %lu\n", clock_vettoriale/N);
         //print_hash(array_hash[0].hash);
 
-        printf("VERSIONE SCALARE\n");
+        printf("\nVERSIONE VETTORIALE EXTRA\n");
+        uint64_t clock_vettoriale_extra = 0;
+        for(int i = 0; i < N; i++){
+            clock_vettoriale_extra += md5_vettoriale_extra(wordlist.array_password, wordlist.num_password, array_hash);
+        }
+        printf("Elapsed clock medio %lu\n", clock_vettoriale_extra/N);
+        //print_hash(array_hash[0].hash);
+
+        printf("\nVERSIONE SCALARE\n");
         uint64_t clock_scalare = 0;
         for(int i = 0; i < N; i++){
             clock_scalare += md5(wordlist.array_password, wordlist.num_password, array_hash);
@@ -47,7 +55,10 @@ int main(int argc, char *argv[]) {
         //print_hash(array_hash[0].hash);
 
         double speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale/N);
-        printf("Lo speedup ottenuto e' pari a (versione ottimizzata): %.4f\n", speedup);
+        printf("\nLo speedup ottenuto e' pari a : %.4f\n", speedup);
+
+        speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale_extra/N);
+        printf("\n(caso extra) Lo speedup ottenuto e' pari a : %.4f\n", speedup);
         
         //Deallocazione hash
         _mm_free(array_hash);
