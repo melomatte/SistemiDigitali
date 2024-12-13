@@ -29,12 +29,13 @@ static const uint32_t K[] = {
 };
 
 // Valori di shift ottimizzati per algoritmo MD5
-static const uint32_t s[] = {
+static const uint8_t s[] = {
     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
     5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
     4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
 };
+
 
 static const uint8_t g[] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 
@@ -59,4 +60,5 @@ typedef struct{
 
 uint64_t md5(password *array_password, unsigned int num_password, hash *array_hash);
 uint64_t md5_vettoriale(password *array_password, unsigned int num_password, hash *array_hash);
+uint64_t md5_vettoriale_extra(password *array_password, unsigned int num_password, hash *array_hash);
 #endif
