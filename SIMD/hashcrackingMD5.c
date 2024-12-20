@@ -1,5 +1,6 @@
 #include "wordlist.h"
-#include "MD5.h"
+#include "MD5_scalare.h"
+#include "MD5_vettoriale.h"
 
 #define N 100
 
@@ -30,6 +31,8 @@ int main(int argc, char *argv[]) {
         hash *array_hash = (hash *) _mm_malloc (wordlist.num_password*sizeof(hash), 16);// 16 byte (128 bit) aligned
         if (!array_hash) perror("ERRORE: Allocazione fallita per array_hash");
 
+        printf("\n********************************\nELAPSED CLOCK MEDIO (RIPETIZIONE %d VOLTE)\n********************************\n", N);
+
         printf("\nVERSIONE VETTORIALE\n");
         uint64_t clock_vettoriale = 0;
         for(int i = 0; i < N; i++){
@@ -38,12 +41,28 @@ int main(int argc, char *argv[]) {
         printf("Elapsed clock medio %lu\n", clock_vettoriale/N);
         //print_hash(array_hash[0].hash);
 
-        printf("\nVERSIONE VETTORIALE EXTRA\n");
-        uint64_t clock_vettoriale_extra = 0;
+        printf("\nVERSIONE VETTORIALE V1 (disposizione memoria differente -> overhead registri)\n");
+        uint64_t clock_vettoriale_v1 = 0;
         for(int i = 0; i < N; i++){
-            clock_vettoriale_extra += md5_vettoriale_extra(wordlist.array_password, wordlist.num_password, array_hash);
+            clock_vettoriale_v1 += md5_vettoriale_v1(wordlist.array_password, wordlist.num_password, array_hash);
         }
-        printf("Elapsed clock medio %lu\n", clock_vettoriale_extra/N);
+        printf("Elapsed clock medio %lu\n", clock_vettoriale_v1/N);
+        //print_hash(array_hash[0].hash);
+
+        printf("\nVERSIONE VETTORIALE V2 (disposizione memoria differente -> set)\n");
+        uint64_t clock_vettoriale_v2 = 0;
+        for(int i = 0; i < N; i++){
+            clock_vettoriale_v2 += md5_vettoriale_v2(wordlist.array_password, wordlist.num_password, array_hash);
+        }
+        printf("Elapsed clock medio %lu\n", clock_vettoriale_v2/N);
+        //print_hash(array_hash[0].hash);
+
+        printf("\nVERSIONE VETTORIALE V3 (disposizione memoria differente -> load)\n");
+        uint64_t clock_vettoriale_v3 = 0;
+        for(int i = 0; i < N; i++){
+            clock_vettoriale_v3 += md5_vettoriale_v3(wordlist.array_password, wordlist.num_password, array_hash);
+        }
+        printf("Elapsed clock medio %lu\n", clock_vettoriale_v3/N);
         //print_hash(array_hash[0].hash);
 
         printf("\nVERSIONE SCALARE\n");
@@ -54,12 +73,20 @@ int main(int argc, char *argv[]) {
         printf("Elapsed clock medio %lu\n", clock_scalare/N);
         //print_hash(array_hash[0].hash);
 
+        printf("\n********************************\nSPEEDUP\n********************************\n");
+
         double speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale/N);
         printf("\nLo speedup ottenuto e' pari a : %.4f\n", speedup);
 
-        speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale_extra/N);
-        printf("\n(caso extra) Lo speedup ottenuto e' pari a : %.4f\n", speedup);
-        
+        speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale_v1/N);
+        printf("\nV1 -> Lo speedup ottenuto e' pari a : %.4f\n", speedup);
+
+        speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale_v2/N);
+        printf("\nV2 -> Lo speedup ottenuto e' pari a : %.4f\n", speedup);
+
+        speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale_v3/N);
+        printf("\nV3 -> Lo speedup ottenuto e' pari a : %.4f\n", speedup);
+    
         //Deallocazione hash
         _mm_free(array_hash);
     }
