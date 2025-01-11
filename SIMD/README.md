@@ -7,7 +7,11 @@ Il programma richiede due argomenti da linea di comando:
 
 **Esempio di utilizzo:**
 ```bash
+*compilazione*
 gcc hashcrackingMD5.c Librerie/MD5_scalare.c Librerie/MD5_vettoriale.c Librerie/wordlist.c Librerie/utils.c -o hashcrackingMD5 -msse4.1
+*esecuzione*
+./hashcrackingMD5 wordlist.txt 5d41402abc4b2a76b9719d911017c592
+
 ```
 
 ## Funzioni principali
