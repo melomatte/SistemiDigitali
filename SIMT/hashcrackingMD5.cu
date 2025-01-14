@@ -1,4 +1,12 @@
 #include "wordlist.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
 #include <cuda_runtime.h>
 
 // Costanti per algoritmo MD5 -> lato CPU
@@ -48,27 +56,28 @@ __costant__ uint32_t a0, b0, c0, d0;
 
 #define LEFTROTATE(x, c) (((x) << (c)) | ((x) >> (32 - (c))))
 
-__global__ void hashcracking (uint8_t *array_password ,uint8_t num_password, uint8_t *hash_da_craccare){
+__global__ void hashcracking (password *array_password ,uint8_t num_password, uint8_t *hash_da_craccare){
   uint8_t padded_password[num_password][64], hash_calcolato[16];
   uint8_t i,j;
-  uint32_t *M
+  uint32_t *M;
   uint32_t A, B, C, D, F;
   uint64_t len_password_bits;
 
   //Padding delle password assegnate al thread
+
   // Assunzione di base -> tutte le password presentano una lunghezza minore di 64 caratteri (64 byte), ovvero sono costituite da un solo chunk
   for(i = 0; i < num_password; i++){
       memcpy(padded_password[i], array_password[i].pwd, array_password[i].len_pwd);
-      padded_password[i][array_password[i].len_pwd] = 0x80; // padded_password[0..len_password-1] = password; padded_password[len_password] = 1000 0000
-      for (j = array_password[i].len_pwd + 1; j < 56; j++) {    //padded_password[len_password+1..56] = 0000 0000
+      padded_password[i][array_password[i].len_pwd] = 0x80;
+      for (j = array_password[i].len_pwd + 1; j < 56; j++) {
           padded_password[i][j] = 0x00;
       }
-      len_password_bits = array_password[i].len_pwd * 8; // len_password in bit
-      memcpy(padded_password[i] + 56, &len_password_bits, 8); // padded_password[56..63] = len_password_bits
+      len_password_bits = array_password[i].len_pwd * 8;
+      memcpy(padded_password[i] + 56, &len_password_bits, 8);
   }
   
   //Per ogni parola, viene preso in considerazione l'unico chunk da 64 byte
-  for(i = 0; i < num_password; k++){
+  for(i = 0; i < num_password; i++){
     // Il chunk viene diviso in elementi da 32 bit (64 byte -> 16 elementi da 32 bit)
     M = (uint32_t *)(padded_password[k]);
 
@@ -76,22 +85,22 @@ __global__ void hashcracking (uint8_t *array_password ,uint8_t num_password, uin
     A = a0, B = b0, C = c0, D = d0;
 
     // 4 round di 16 operazioni
-    for (uint16_t i = 0; i < 64; i++) {
-        if (i <= 15) {
+    for (j = 0; j < 64; j++) {
+        if (j <= 15) {
             F = (B & C) | (~B & D);
-        } else if (i >= 16 && i <= 31) {
+        } else if (j >= 16 && j <= 31) {
             F = (D & B) | (~D & C);
-        } else if (i >= 32 && i <= 47) {
+        } else if (j >= 32 && j <= 47) {
             F = B ^ C ^ D;
         } else {
             F = C ^ (B | ~D);
         }
                     
-        F = A + F + K[i] + M[g[i]];
+        F = A + F + K[j] + M[g[j]];
         A = D;
         D = C;
         C = B;
-        B = B + LEFTROTATE(F, s[i]);
+        B = B + LEFTROTATE(F, s[j]);
     }
       
     // Fine elaborazione chunk -> aggiorno variabili
@@ -122,6 +131,7 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
+    //Lettura della wordlist
     result_wordlist wordlist = read_wordlist(argv[1]);
 
     if(wordlist.error_code == -1){
@@ -135,7 +145,7 @@ int main(int argc, char *argv[]) {
         Dimensionamento di blocco e griglia -> blocco 1D e griglia 1D
         **********/
 
-        dim3 blockSize(128);        
+        dim3 blockSize(256);        
         int dimGrid = (len(wordlisit.num_password) + blockSize - 1) / blockSize;
         dim3 gridSize(dimGrid);
 
@@ -144,38 +154,57 @@ int main(int argc, char *argv[]) {
         **********/
 
         //Costanti per algortimo MD5
-        cudaError_t err = cudaMemcpyToSymbol(K, K_cpu, 64*sizeof(uint32_t));
-        if (err != cudaSuccess) {
-            perror("ERRORE-Copia nella memoria costante lato device non avvenuta con successo\n");
-        }
-        err = cudaMemcpyToSymbol(s, s_cpu, 64*sizeof(uint8_t));
-        if (err != cudaSuccess) {
-            perror("ERRORE-Copia nella memoria costante lato device non avvenuta con successo\n");
-        }
-        err = cudaMemcpyToSymbol(g, g_cpu, 64*sizeof(uint8_t));
-        if (err != cudaSuccess) {
-            perror("ERRORE-Copia nella memoria costante lato device non avvenuta con successo\n");
-        }
-
+        cudaMemcpyToSymbol(K, K_cpu, 64*sizeof(uint32_t));
+        cudaMemcpyToSymbol(s, s_cpu, 64*sizeof(uint8_t));
+        cudaMemcpyToSymbol(g, g_cpu, 64*sizeof(uint8_t));
         cudaMemcpyToSymbol(a0, a0_cpu, sizeof(uint8_t));
         cudaMemcpyToSymbol(b0, b0_cpu, sizeof(uint8_t));
         cudaMemcpyToSymbol(c0, c0_cpu, sizeof(uint8_t));
         cudaMemcpyToSymbol(d0, d0_cpu, sizeof(uint8_t));
 
-        //Password lette dalla wordlist
+        //Password lette dalla wordlist e hash da craccare
+        
+        //Modalità di trasferimento normale
+        password* d_array_password;
+        uint8_t* d_hash_craccare;
+
+        cudaMalloc(&d_array_password, sizeof(password)*wordlist.num_password);
+        cudaMalloc(&d_hash_craccare, sizeof(uint8_t)*16);
+
+        cudaMemcpy(d_array_password, wordlist.array_password, sizeof(password)*wordlist.num_password ,cudaMemcpyHostToDevice);
+        cudaMemcpy(d_hash_craccare, argv[2], sizeof(uint8_t)*16, cudaMemcpyHostToDevice)
+
+        hashcracking <<<gridSize, blockSize>>> (d_array_password, 1, d_hash_craccare);
+
+        //Modalità pinned -> trasferimento più veloce per grandi quantità di dati
+        cudaMallocHost(&d_array_password, sizeof(password)*wordlist.num_password);
+        cudaMalloc(&d_hash_craccare, sizeof(uint8_t)*16);
+
+        cudaMemcpy(d_array_password, wordlist.array_password, sizeof(password)*wordlist.num_password ,cudaMemcpyHostToDevice);
+        cudaMemcpy(d_hash_craccare, argv[2], sizeof(uint8_t)*16, cudaMemcpyHostToDevice)
+
+        hashcracking <<<gridSize, blockSize>>> (d_array_password, 1, d_hash_craccare);
+
+        //Modalità UVA (unified virtual addressing) -> stesso spazio di indirizzamento virtuale (si possono utilizzare gli stessi puntatori tra host e device)
+        
+
+        //Modalità UM (unified memory) -> la gestione della memoria è responsabilità del cuda runtime, che può allocare i dati sulla memoria host o device (poco controllo)
+        cudaMallocManaged(d_array_password, sizeof(password)*wordlist.num_password, 0);
+        cudaMalloc(&d_hash_craccare, sizeof(uint8_t)*16);
+
+        hashcracking <<<gridSize, blockSize>>> (d_array_password, 1, d_hash_craccare);
 
         /**********
-        Lancio del kernel
+        Lancio del kernel e sincronizzazione con il device
         **********/
+        cudaDeviceSyncronize();
 
-        hashcracking <<<gridSize, blockSize>>> ();
+        //Necessari per trasferimento normale e pinned
+        cudaFree(d_array_password);
+        cudaFree(d_hash_craccare);
 
+        printf("Termine dell'applicazione\n");
 
-        double speedup = ((double)clock_scalare/N)/ ((double) clock_vettoriale/N);
-        printf("\nLo speedup ottenuto e' pari a : %.4f\n", speedup);
-        
-        //Deallocazione hash
-        _mm_free(array_hash);
     }
 
     free(wordlist.array_password);
