@@ -42,7 +42,7 @@ uint8_t** padding_vettoriale(password *array_password, unsigned int *num_passwor
 }
 
 /********
- VERSIONE PIÙ EFFICIENTE
+ VERSIONE VETTORIALE STANDARD
 ********/
 
 void initialization(){
@@ -59,11 +59,9 @@ void initialization(){
     d0_init = _mm_set1_epi32 (0x10325476);
 }
 
-uint64_t md5_vettoriale(password *array_password, unsigned int num_password, hash *array_hash){
-    uint8_t **padded_password = padding_vettoriale(array_password, &num_password);
-    initialization();
-
+uint64_t md5_vettoriale(password *array_password, unsigned int num_password, hash *array_hash, hash hash_tocrack, int modalita_test){
     uint8_t i = 0;
+    uint8_t **padded_password;
     uint32_t *M_0, *M_1, *M_2, *M_3;
     __m128i *p_K;
     __m128i F;
@@ -85,8 +83,18 @@ uint64_t md5_vettoriale(password *array_password, unsigned int num_password, has
     __m128i third_hash, third_hash_uns;
     __m128i fourth_hash, fourth_hash_uns;
     __m128i registro_1 = _mm_set1_epi8(-1); //maschera di 1 (si utilizza -1 in quanto la codifica in binario è pari a 1111 1111)
+    uint64_t inizio_elaborazione, fine_elaborazione;
+    bool sentinella1, sentinella2, sentinella3, sentinella4;
 
-    uint64_t inizio_elaborazione = __rdtsc();
+    if(modalita_test == 1){
+        inizio_elaborazione = __rdtsc();                                 //--> TEST CON PADDING E INIZIALIZZAZIONI
+        padded_password = padding_vettoriale(array_password, &num_password);
+        initialization();
+    }else{
+        padded_password = padding_vettoriale(array_password, &num_password);
+        initialization();
+        inizio_elaborazione = __rdtsc();
+    }
 
     //Le password vengono processate al passo di 4
     for(unsigned int k = 0; k < num_password/4; k++){
@@ -187,10 +195,41 @@ uint64_t md5_vettoriale(password *array_password, unsigned int num_password, has
         _mm_store_si128(p_K + 1, second_hash);
         _mm_store_si128(p_K + 2, third_hash);
         _mm_store_si128(p_K + 3, fourth_hash);
-        
+
+        // Confronta hash
+        sentinella1 = true;
+        sentinella2 = true;
+        sentinella3 = true;
+        sentinella4 = true;
+
+        for (int i = 0; i < 16; i++) {
+            if (array_hash[k*4].hash[i] != hash_tocrack.hash[i]) {
+                sentinella1 = false;
+            }
+            if (array_hash[k*4+1].hash[i] != hash_tocrack.hash[i]) {
+                sentinella2 = false;
+            }
+            if (array_hash[k*4+2].hash[i] != hash_tocrack.hash[i]) {
+                sentinella3 = false;
+            }
+            if (array_hash[k*4+3].hash[i] != hash_tocrack.hash[i]) {
+                sentinella4 = false;
+            }
+        }
+
+        if(sentinella1){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4].pwd);
+        }else if(sentinella2){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+1].pwd);
+        }else if(sentinella3){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+2].pwd);
+        }else if(sentinella4){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+3].pwd);
+        }
+     
     }
 
-    uint64_t fine_elaborazione = __rdtsc();
+    fine_elaborazione = __rdtsc();
     
     deallocation8(padded_password, num_password);
 
@@ -246,12 +285,10 @@ __m128i** initialization_v1(uint8_t** padded_password, unsigned int num_password
     return M_register;
 }
 
-uint64_t md5_vettoriale_v1(password *array_password, unsigned int num_password, hash *array_hash){
-    uint8_t **padded_password = padding_vettoriale(array_password, &num_password);
+uint64_t md5_vettoriale_v1(password *array_password, unsigned int num_password, hash *array_hash, hash hash_tocrack, int modalita_test){
     __m128i** M_register;
-    M_register = initialization_v1(padded_password, num_password);
-
     uint8_t i = 0;
+    uint8_t **padded_password;
     __m128i *p_K;
     __m128i F;
     __m128i a0, A;
@@ -271,8 +308,19 @@ uint64_t md5_vettoriale_v1(password *array_password, unsigned int num_password, 
     __m128i third_hash, third_hash_uns;
     __m128i fourth_hash, fourth_hash_uns;
     __m128i registro_1 = _mm_set1_epi8(-1); //maschera di 1 (si utilizza -1 in quanto la codifica in binario è pari a 1111 1111)
+    bool sentinella1, sentinella2, sentinella3, sentinella4;
+    uint64_t inizio_elaborazione, fine_elaborazione;
 
-    uint64_t inizio_elaborazione = __rdtsc();
+    if(modalita_test == 1){
+        inizio_elaborazione = __rdtsc();                                 //--> TEST CON PADDING E INIZIALIZZAZIONI
+        padded_password = padding_vettoriale(array_password, &num_password);
+        M_register = initialization_v1(padded_password, num_password);
+    }else{
+        padded_password = padding_vettoriale(array_password, &num_password);
+        M_register = initialization_v1(padded_password, num_password);
+        inizio_elaborazione = __rdtsc();
+    }
+
 
     //Le password vengono processate al passo di 4
     for(unsigned int k = 0; k < num_password/4; k++){
@@ -336,10 +384,41 @@ uint64_t md5_vettoriale_v1(password *array_password, unsigned int num_password, 
         _mm_store_si128(p_K + 1, second_hash);
         _mm_store_si128(p_K + 2, third_hash);
         _mm_store_si128(p_K + 3, fourth_hash);
+
+        // Confronta hash
+        sentinella1 = true;
+        sentinella2 = true;
+        sentinella3 = true;
+        sentinella4 = true;
+
+        for (int i = 0; i < 16; i++) {
+            if (array_hash[k*4].hash[i] != hash_tocrack.hash[i]) {
+                sentinella1 = false;
+            }
+            if (array_hash[k*4+1].hash[i] != hash_tocrack.hash[i]) {
+                sentinella2 = false;
+            }
+            if (array_hash[k*4+2].hash[i] != hash_tocrack.hash[i]) {
+                sentinella3 = false;
+            }
+            if (array_hash[k*4+3].hash[i] != hash_tocrack.hash[i]) {
+                sentinella4 = false;
+            }
+        }
+
+        if(sentinella1){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4].pwd);
+        }else if(sentinella2){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+1].pwd);
+        }else if(sentinella3){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+2].pwd);
+        }else if(sentinella4){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+3].pwd);
+        }
         
     }
 
-    uint64_t fine_elaborazione = __rdtsc();
+    fine_elaborazione = __rdtsc();
     
     deallocation8(padded_password, num_password);
 
@@ -389,12 +468,11 @@ uint32_t** initialization_v2_v3(uint8_t** padded_password, unsigned int num_pass
  
 }
 
-uint64_t md5_vettoriale_v2(password *array_password, unsigned int num_password, hash *array_hash){
-    uint8_t **padded_password = padding_vettoriale(array_password, &num_password);
-    uint32_t **M = initialization_v2_v3(padded_password, num_password);
-
+uint64_t md5_vettoriale_v2(password *array_password, unsigned int num_password, hash *array_hash, hash hash_tocrack, int modalita_test){
     uint8_t i = 0;
     __m128i *p_K;
+    uint8_t **padded_password;
+    uint32_t **M;
     __m128i F;
     __m128i M_register;
     __m128i a0, A;
@@ -414,8 +492,18 @@ uint64_t md5_vettoriale_v2(password *array_password, unsigned int num_password, 
     __m128i third_hash, third_hash_uns;
     __m128i fourth_hash, fourth_hash_uns;
     __m128i registro_1 = _mm_set1_epi8(-1); //maschera di 1 (si utilizza -1 in quanto la codifica in binario è pari a 1111 1111)
+    bool sentinella1, sentinella2, sentinella3, sentinella4;
+    uint64_t inizio_elaborazione, fine_elaborazione;
 
-    uint64_t inizio_elaborazione = __rdtsc();
+    if(modalita_test == 1){
+        inizio_elaborazione = __rdtsc();                                 
+        padded_password = padding_vettoriale(array_password, &num_password);
+        M = initialization_v2_v3(padded_password, num_password);
+    }else{
+        padded_password = padding_vettoriale(array_password, &num_password);
+        M = initialization_v2_v3(padded_password, num_password);
+        inizio_elaborazione = __rdtsc();
+    }
 
     //Le password vengono processate al passo di 4
     for(unsigned int k = 0; k < num_password/4; k++){
@@ -510,10 +598,41 @@ uint64_t md5_vettoriale_v2(password *array_password, unsigned int num_password, 
         _mm_store_si128(p_K + 1, second_hash);
         _mm_store_si128(p_K + 2, third_hash);
         _mm_store_si128(p_K + 3, fourth_hash);
+
+        // Confronta hash
+        sentinella1 = true;
+        sentinella2 = true;
+        sentinella3 = true;
+        sentinella4 = true;
+
+        for (int i = 0; i < 16; i++) {
+            if (array_hash[k*4].hash[i] != hash_tocrack.hash[i]) {
+                sentinella1 = false;
+            }
+            if (array_hash[k*4+1].hash[i] != hash_tocrack.hash[i]) {
+                sentinella2 = false;
+            }
+            if (array_hash[k*4+2].hash[i] != hash_tocrack.hash[i]) {
+                sentinella3 = false;
+            }
+            if (array_hash[k*4+3].hash[i] != hash_tocrack.hash[i]) {
+                sentinella4 = false;
+            }
+        }
+
+        if(sentinella1){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4].pwd);
+        }else if(sentinella2){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+1].pwd);
+        }else if(sentinella3){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+2].pwd);
+        }else if(sentinella4){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+3].pwd);
+        }
         
     }
 
-    uint64_t fine_elaborazione = __rdtsc();
+    fine_elaborazione = __rdtsc();
     
     deallocation8(padded_password, num_password);
     deallocation32(M, num_password/4);
@@ -525,11 +644,10 @@ uint64_t md5_vettoriale_v2(password *array_password, unsigned int num_password, 
  VERSIONE CON DISPOSIZIONE EFFICIENTE DEI DATI IN MEMORIA -> OPERAZIONE DI LOAD
 ********/
 
-uint64_t md5_vettoriale_v3(password *array_password, unsigned int num_password, hash *array_hash){
-    uint8_t **padded_password = padding_vettoriale(array_password, &num_password);
-    uint32_t **M = initialization_v2_v3(padded_password, num_password);
-
+uint64_t md5_vettoriale_v3(password *array_password, unsigned int num_password, hash *array_hash, hash hash_tocrack, int modalita_test){
     uint8_t i = 0;
+    uint8_t **padded_password;
+    uint32_t **M;
     __m128i *p_K, *p_M;
     __m128i F;
     __m128i M_register;
@@ -550,8 +668,18 @@ uint64_t md5_vettoriale_v3(password *array_password, unsigned int num_password, 
     __m128i third_hash, third_hash_uns;
     __m128i fourth_hash, fourth_hash_uns;
     __m128i registro_1 = _mm_set1_epi8(-1); //maschera di 1 (si utilizza -1 in quanto la codifica in binario è pari a 1111 1111)
+    bool sentinella1, sentinella2, sentinella3, sentinella4;
+    uint64_t inizio_elaborazione, fine_elaborazione;
 
-    uint64_t inizio_elaborazione = __rdtsc();
+    if(modalita_test == 1){
+        inizio_elaborazione = __rdtsc();                                 
+        padded_password = padding_vettoriale(array_password, &num_password);
+        M = initialization_v2_v3(padded_password, num_password);
+    }else{
+        padded_password = padding_vettoriale(array_password, &num_password);
+        M = initialization_v2_v3(padded_password, num_password);
+        inizio_elaborazione = __rdtsc();
+    }
 
     //Le password vengono processate al passo di 4
     for(unsigned int k = 0; k < num_password/4; k++){
@@ -647,10 +775,41 @@ uint64_t md5_vettoriale_v3(password *array_password, unsigned int num_password, 
         _mm_store_si128(p_K + 1, second_hash);
         _mm_store_si128(p_K + 2, third_hash);
         _mm_store_si128(p_K + 3, fourth_hash);
+
+        // Confronta hash
+        sentinella1 = true;
+        sentinella2 = true;
+        sentinella3 = true;
+        sentinella4 = true;
+
+        for (int i = 0; i < 16; i++) {
+            if (array_hash[k*4].hash[i] != hash_tocrack.hash[i]) {
+                sentinella1 = false;
+            }
+            if (array_hash[k*4+1].hash[i] != hash_tocrack.hash[i]) {
+                sentinella2 = false;
+            }
+            if (array_hash[k*4+2].hash[i] != hash_tocrack.hash[i]) {
+                sentinella3 = false;
+            }
+            if (array_hash[k*4+3].hash[i] != hash_tocrack.hash[i]) {
+                sentinella4 = false;
+            }
+        }
+
+        if(sentinella1){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4].pwd);
+        }else if(sentinella2){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+1].pwd);
+        }else if(sentinella3){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+2].pwd);
+        }else if(sentinella4){
+            printf("L'hash corrisponde alla password: %s\n", array_password[k*4+3].pwd);
+        }
         
     }
 
-    uint64_t fine_elaborazione = __rdtsc();
+    fine_elaborazione = __rdtsc();
     
     deallocation8(padded_password, num_password);
     deallocation32(M, num_password/4);
