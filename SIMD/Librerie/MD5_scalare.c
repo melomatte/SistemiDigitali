@@ -22,7 +22,7 @@ uint8_t** padding_scalare(password *array_password, unsigned int num_password){
     return padded_password;
 }
 
-uint64_t md5(password *array_password, unsigned int num_password, hash *array_hash) {
+uint64_t md5(password *array_password, unsigned int num_password, hash *array_hash, hash hash_tocrack, int modalita_test) {
     // Padding password
     // Assunzione di base -> tutte le password presentano una lunghezza minore di 64 caratteri (64 byte), ovvero sono costituite da un solo chunk
     uint32_t a0, A;
@@ -30,9 +30,17 @@ uint64_t md5(password *array_password, unsigned int num_password, hash *array_ha
     uint32_t c0, C;
     uint32_t d0, D;
     uint32_t F;
+    uint8_t **padded_password;
+    uint64_t inizio_elaborazione, fine_elaborazione;
+    bool sentinella;
 
-    uint8_t **padded_password = padding_scalare(array_password, num_password);
-    uint64_t inizio_elaborazione = __rdtsc();
+    if(modalita_test == 1){
+        inizio_elaborazione = __rdtsc();
+        padded_password = padding_scalare(array_password, num_password);
+    }else{
+        padded_password = padding_scalare(array_password, num_password);
+        inizio_elaborazione = __rdtsc();
+    }
 
     //Per ogni parola, viene preso in considerazione l'unico chunk da 64 byte
     for(unsigned int k = 0; k < num_password; k++){
@@ -80,8 +88,19 @@ uint64_t md5(password *array_password, unsigned int num_password, hash *array_ha
         memcpy(array_hash[k].hash + 4, &b0, 4);
         memcpy(array_hash[k].hash + 8, &c0, 4);
         memcpy(array_hash[k].hash + 12, &d0, 4);
+
+        // Confronta hash
+        sentinella = true;
+        for (int i = 0; i < 16; i++) {
+            if (array_hash[k].hash[i] != hash_tocrack.hash[i]) {
+                sentinella = false;
+            }
+        }
+
+        if (sentinella) printf("L'hash corrisponde alla password: %s\n", array_password[k].pwd);
     }
-    uint64_t fine_elaborazione = __rdtsc();
+
+    fine_elaborazione = __rdtsc();
 
     deallocation8(padded_password, num_password);
 
