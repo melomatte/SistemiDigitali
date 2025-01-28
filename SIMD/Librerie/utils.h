@@ -11,6 +11,8 @@
 #include <time.h>
 #include <emmintrin.h>
 #include <x86intrin.h>
+#include <stdbool.h>
+#include <ctype.h>
 
 // Costanti MD5 calcolate come (K[i] = floor(2^32 * abs(sin(i+1))))
 static const uint32_t K[] = {
@@ -48,6 +50,8 @@ static const uint8_t g[] = {
     7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9 
 };
 
+
+
 // Operazione di LEFTROTATE -> si shifta x di c posizioni verso sinistra e si esegue OR bit a bit con x shiftato di 32-c posizioni verso destra
 #define LEFTROTATE(x, c) (((x) << (c)) | ((x) >> (32 - (c))))
 
@@ -59,7 +63,7 @@ typedef struct{
 
 //Struct per modellare attributi singolo hash di una password
 typedef struct{
-    char hash[16];
+    uint8_t hash[16];
 }hash;
 
 //Struct per modellare lettura della wordlist
@@ -71,4 +75,7 @@ typedef struct{
 
 void deallocation8(uint8_t **padded_password, unsigned int num_password);
 void deallocation32(uint32_t **padded_password, unsigned int num_password);
+uint8_t hex_char_to_value(char c);
+bool hash_valid(char* stringa_hash);
+void print_hash(hash hash);
 #endif
