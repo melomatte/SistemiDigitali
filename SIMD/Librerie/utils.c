@@ -13,3 +13,30 @@ void deallocation32(uint32_t **padded_password, unsigned int num_password) {
     }
     _mm_free(padded_password);
 }
+
+uint8_t hex_char_to_value(char c) {
+    if (c >= '0' && c <= '9') {
+        return c - '0'; // Converte un carattere numerico ('0'-'9') nel valore numerico corrispondente (0-9)
+    } else {
+        return c - 'a' + 10; // Converte un carattere esadecimale ('a'-'f') nel valore numerico corrispondente (10-15)
+    }
+}
+
+bool hash_valid(char* stringa_hash) {
+    bool sentinella = true;
+    int i;
+    for (i = 0; stringa_hash[i] != '\0'; i++) {
+        if (i > 31 || !(isdigit(stringa_hash[i]) || (stringa_hash[i] >= 'a' && stringa_hash[i] <= 'z'))) {
+            sentinella = false;
+        }
+    }
+    if (i != 32) sentinella = false;
+    return sentinella;
+}
+
+void print_hash(hash hash) {
+    for (uint8_t i = 0; i < 16; i++) {
+        printf("%02x", (unsigned char) hash.hash[i]);  // Stampa ogni byte in formato esadecimale
+    }
+    printf("\n");
+}
