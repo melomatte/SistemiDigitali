@@ -34,7 +34,7 @@ static const uint32_t K[] = {
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
 };
 
-// Valori di shift ottimizzati per algoritmo MD5
+// Valori di shift per algoritmo MD5
 static const uint8_t s[] = {
     7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
     5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
@@ -42,7 +42,7 @@ static const uint8_t s[] = {
     6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
 };
 
-
+//Costanti g precomputate
 static const uint8_t g[] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 
     6, 11, 0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 5, 
@@ -55,18 +55,13 @@ static const uint8_t g[] = {
 // Operazione di LEFTROTATE -> si shifta x di c posizioni verso sinistra e si esegue OR bit a bit con x shiftato di 32-c posizioni verso destra
 #define LEFTROTATE(x, c) (((x) << (c)) | ((x) >> (32 - (c))))
 
-//Struct per modellare attributi singola password contenute nella wordlist
+//Struct per modellare singola password in wordlist
 typedef struct{
     char pwd[56];
     uint8_t len_pwd;
 }password;
 
-//Struct per modellare attributi singolo hash di una password
-typedef struct{
-    uint8_t hash[16];
-}hash;
-
-//Struct per modellare lettura della wordlist
+//Struct per modellare la lettura della wordlist
 typedef struct{
     int error_code;
     password *array_password;       //Array di password lette dalla wordlist
@@ -77,5 +72,5 @@ void deallocation8(uint8_t **padded_password, unsigned int num_password);
 void deallocation32(uint32_t **padded_password, unsigned int num_password);
 uint8_t hex_char_to_value(char c);
 bool hash_valid(char* stringa_hash);
-void print_hash(hash hash);
+void print_hash(uint8_t *hash);
 #endif
