@@ -11,26 +11,23 @@ uint8_t** padding_scalare(password *array_password, unsigned int num_password){
 
     for(i = 0; i < num_password; i++){
         memcpy(padded_password[i], array_password[i].pwd, array_password[i].len_pwd);
-        padded_password[i][array_password[i].len_pwd] = 0x80; // padded_password[0..len_password-1] = password; padded_password[len_password] = 1000 0000
-        for (j = array_password[i].len_pwd + 1; j < 56; j++) {    //padded_password[len_password+1..56] = 0000 0000
-            padded_password[i][j] = 0x00;
-        }
-        uint64_t len_password_bits = array_password[i].len_pwd * 8; // len_password in bit
-        memcpy(padded_password[i] + 56, &len_password_bits, 8); // padded_password[56..63] = len_password_bits
+        padded_password[i][array_password[i].len_pwd] = 0x80;
+        memset(padded_password[i] + array_password[i].len_pwd + 1, 0, 56 - array_password[i].len_pwd - 1);
+        uint64_t len_password_bits = array_password[i].len_pwd * 8;
+        memcpy(padded_password[i] + 56, &len_password_bits, 8);
     }
 
     return padded_password;
 }
 
-uint64_t md5(password *array_password, unsigned int num_password, hash *array_hash, hash hash_tocrack, int modalita_test) {
-    // Padding password
-    // Assunzione di base -> tutte le password presentano una lunghezza minore di 64 caratteri (64 byte), ovvero sono costituite da un solo chunk
+uint64_t md5(password *array_password, unsigned int num_password, uint8_t *hash_tocrack, int modalita_test) {
     uint32_t a0, A;
     uint32_t b0, B;
     uint32_t c0, C;
     uint32_t d0, D;
     uint32_t F;
     uint8_t **padded_password;
+    uint8_t hash_calcolato[16];
     uint64_t inizio_elaborazione, fine_elaborazione;
     bool sentinella;
 
@@ -58,8 +55,6 @@ uint64_t md5(password *array_password, unsigned int num_password, hash *array_ha
 
         // 4 round di 16 operazioni
         for (uint16_t i = 0; i < 64; i++) {
-            //~ -> operatore bitwise NOT, inverte i bit (gli 0 diventano 1 e viceversa)
-            //^ -> operatore XOR
             if (i <= 15) {
                 F = (B & C) | (~B & D);
             } else if (i >= 16 && i <= 31) {
@@ -83,16 +78,16 @@ uint64_t md5(password *array_password, unsigned int num_password, hash *array_ha
         c0 += C;
         d0 += D;
 
-        // hash -> insieme delle 4 variabili a 32 bit
-        memcpy(array_hash[k].hash, &a0, 4);
-        memcpy(array_hash[k].hash + 4, &b0, 4);
-        memcpy(array_hash[k].hash + 8, &c0, 4);
-        memcpy(array_hash[k].hash + 12, &d0, 4);
+        // hash -> concatenazione delle 4 variabili a 32 bit
+        memcpy(hash_calcolato, &a0, 4);
+        memcpy(hash_calcolato + 4, &b0, 4);
+        memcpy(hash_calcolato + 8, &c0, 4);
+        memcpy(hash_calcolato + 12, &d0, 4);
 
-        // Confronta hash
+        // Confronto hash
         sentinella = true;
         for (int i = 0; i < 16; i++) {
-            if (array_hash[k].hash[i] != hash_tocrack.hash[i]) {
+            if (hash_calcolato[i] != hash_tocrack[i]) {
                 sentinella = false;
             }
         }
