@@ -1,5 +1,6 @@
 #include "utils.h"
 
+//Funzioni ausiliarie di deallocazione di memoria dinamica
 void deallocation8(uint8_t **padded_password, unsigned int num_password) {
     for (unsigned int i = 0; i < num_password; i++) {
             _mm_free(padded_password[i]);
@@ -14,14 +15,16 @@ void deallocation32(uint32_t **padded_password, unsigned int num_password) {
     _mm_free(padded_password);
 }
 
+//Funzione per convertire ogni carattere nel suo valore esadecimale
 uint8_t hex_char_to_value(char c) {
     if (c >= '0' && c <= '9') {
-        return c - '0'; // Converte un carattere numerico ('0'-'9') nel valore numerico corrispondente (0-9)
+        return c - '0';
     } else {
-        return c - 'a' + 10; // Converte un carattere esadecimale ('a'-'f') nel valore numerico corrispondente (10-15)
+        return c - 'a' + 10;
     }
 }
 
+//Funzione per controllare la correttezza dell'hash inserito in input
 bool hash_valid(char* stringa_hash) {
     bool sentinella = true;
     int i;
@@ -34,9 +37,10 @@ bool hash_valid(char* stringa_hash) {
     return sentinella;
 }
 
-void print_hash(hash hash) {
+//Funzione ausiliaria utilizzata per debug
+void print_hash(uint8_t *hash) {
     for (uint8_t i = 0; i < 16; i++) {
-        printf("%02x", (unsigned char) hash.hash[i]);  // Stampa ogni byte in formato esadecimale
+        printf("%02x", (unsigned char) hash[i]);  // Stampa ogni byte in formato esadecimale
     }
     printf("\n");
 }
